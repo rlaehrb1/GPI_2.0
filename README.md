@@ -3,26 +3,33 @@
 이미지를 넣으면 영어 이미지 프롬프트를 만들어 주는 로컬 웹앱입니다.
 OpenAI API Key는 쓰지 않고, ChatGPT/Codex OAuth 또는 Gemini API Key로 사용합니다.
 
-## 1. 실행 방법
+## 1. 완전 초보자용 실행 순서
 
-준비물: Node.js/npm
+헷갈리면 먼저 이 파일을 열어 보세요.
 
-클론:
-
-```powershell
-git clone <repo-url>
-cd GPI_2.0
+```text
+0_READ_ME_FIRST.txt
 ```
 
-가장 쉬운 실행:
+처음 한 번만 Node.js를 설치합니다.
 
-```powershell
-.\start.ps1
+```text
+https://nodejs.org/
 ```
 
-또는 Windows에서 `start.bat`를 더블클릭해도 됩니다.
+GitHub에서 받은 뒤 `GPI_2.0` 폴더를 엽니다.
 
-`start.ps1` / `start.bat`는 `node_modules`가 없으면 자동으로 `npm install`을 실행한 뒤 앱을 시작합니다.
+처음 설치할 때 여는 파일:
+
+```text
+1_INSTALL_FIRST.bat
+```
+
+설치가 끝난 뒤, GPI를 실행할 때 여는 파일:
+
+```text
+2_RUN_GPI.bat
+```
 
 브라우저 주소:
 
@@ -30,14 +37,38 @@ cd GPI_2.0
 http://127.0.0.1:8787
 ```
 
-수동 실행을 원하면:
+검은 서버 창은 앱을 쓰는 동안 닫지 마세요. GPI를 끄고 싶을 때 그 창을 닫으면 됩니다.
+
+## 2. Git clone으로 받은 경우
+
+PowerShell에서:
+
+```powershell
+git clone <repo-url>
+cd GPI_2.0
+```
+
+그다음 파일 탐색기에서 `GPI_2.0` 폴더를 열고 순서대로 실행합니다.
+
+```text
+1_INSTALL_FIRST.bat
+2_RUN_GPI.bat
+```
+
+기존 방식도 됩니다.
+
+```powershell
+.\start.ps1
+```
+
+또는:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-## 2. ChatGPT OAuth 로그인
+## 3. ChatGPT OAuth 로그인
 
 OpenAI API Key는 필요 없습니다.
 
@@ -65,7 +96,7 @@ OpenAI OAuth 모델:
 - `high`
 - `xhigh`
 
-## 3. Gemini API Key 입력
+## 4. Gemini API Key 입력
 
 1. 앱 상단 중앙의 `gemini api key 입력` 버튼을 누릅니다.
 2. Gemini API Key를 붙여넣습니다.
@@ -90,7 +121,7 @@ Gemini 키는 로컬에만 저장됩니다.
 .gpi/local.json
 ```
 
-## 4. 기본 사용법
+## 5. 기본 사용법
 
 1. 이미지를 넣습니다.
    - 드래그앤드랍
@@ -109,7 +140,7 @@ Gemini 키는 로컬에만 저장됩니다.
 - webp
 - 최대 20MB
 
-## 5. 단축키
+## 6. 단축키
 
 | 단축키 | 기능 |
 |---|---|
@@ -119,7 +150,7 @@ Gemini 키는 로컬에만 저장됩니다.
 | `Ctrl+C` | 결과 복사 |
 | `Esc` | 생성 중단 |
 
-## 6. 로컬 파일
+## 7. 로컬 파일
 
 아래 파일은 자동 생성되며 Git에 올리지 않습니다.
 
@@ -131,7 +162,7 @@ node_modules/      # npm 설치 파일
 dist/              # 빌드 결과
 ```
 
-## 7. 문제 해결
+## 8. 문제 해결
 
 `npm`을 찾을 수 없으면 Node.js를 설치한 뒤 PowerShell을 새로 열어 확인합니다.
 
@@ -157,7 +188,7 @@ npm run dev
 
 이미지 URL이 안 되면 사이트가 외부 다운로드를 막는 경우가 많습니다. 이미지를 파일로 저장해서 넣거나, 브라우저에서 이미지를 복사한 뒤 `Ctrl+V`를 사용하세요.
 
-## 8. 점검
+## 9. 점검
 
 ```powershell
 npm run check
