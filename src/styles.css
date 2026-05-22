@@ -75,7 +75,7 @@ kbd {
   box-shadow: var(--shadow);
   display: grid;
   gap: 14px;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(180px, 0.9fr) auto minmax(260px, 1fr);
   min-height: 64px;
   padding: 10px 12px;
 }
@@ -145,8 +145,11 @@ kbd {
 }
 
 .status-pill.ok {
-  border-color: rgba(90, 221, 141, 0.32);
-  color: var(--green);
+  background: rgba(34, 115, 74, 0.2);
+  border-color: rgba(90, 221, 141, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(90, 221, 141, 0.1);
+  color: #a9ffc6;
+  font-weight: 800;
 }
 
 .status-pill.warn {
@@ -158,13 +161,17 @@ kbd {
   color: var(--faint);
 }
 
-.top-actions,
+.auth-actions,
 .toolbar-actions,
 .intake-actions,
 .generate-row {
   align-items: center;
   display: flex;
   gap: 8px;
+}
+
+.auth-actions {
+  justify-content: center;
 }
 
 .control-button {
@@ -183,6 +190,27 @@ kbd {
     border-color 140ms ease,
     transform 140ms ease;
   white-space: nowrap;
+}
+
+.auth-button {
+  background: #17202a;
+  border-color: #31404d;
+  min-height: 42px;
+  padding: 0 15px;
+}
+
+.auth-button.connected {
+  background: linear-gradient(135deg, rgba(90, 221, 141, 0.28), rgba(31, 122, 79, 0.58));
+  border-color: rgba(90, 221, 141, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(90, 221, 141, 0.16),
+    0 0 22px rgba(90, 221, 141, 0.18);
+  color: #d9ffe7;
+  font-weight: 800;
+}
+
+.auth-button.connected svg {
+  color: var(--green);
 }
 
 .control-button:hover:not(:disabled) {
@@ -615,10 +643,18 @@ textarea {
   }
 
   .status-strip,
-  .top-actions,
+  .auth-actions,
   .toolbar-actions,
   .intake-actions {
     flex-wrap: wrap;
+  }
+
+  .auth-actions {
+    justify-content: flex-start;
+  }
+
+  .auth-button {
+    flex: 1 1 170px;
   }
 
   .left-stack,

@@ -229,14 +229,14 @@ function App() {
   const setPreparedImage = useCallback((nextImage) => {
     setImage(nextImage);
     setResult("");
-    setMessage(`${nextImage.name} loaded · ${formatBytes(nextImage.sizeBytes)}`);
+    setMessage(`${nextImage.name} 불러옴 · ${formatBytes(nextImage.sizeBytes)}`);
   }, []);
 
   const handleFile = useCallback(
     async (file) => {
       if (!file) return;
       try {
-        setMessage("Preparing image...");
+        setMessage("이미지 준비 중...");
         const prepared = await prepareImageFile(file);
         setPreparedImage(prepared);
       } catch (error) {
@@ -286,16 +286,16 @@ function App() {
 
   const connectOpenAI = useCallback(async () => {
     setConnectBusy(true);
-    setMessage("Checking OpenAI OAuth...");
+    setMessage("OpenAI OAuth 확인 중...");
     try {
       const data = await api("/api/openai/connect", {
         method: "POST",
         body: JSON.stringify({ login: true })
       });
       if (data.connected) {
-        setMessage("OpenAI OAuth connected");
+        setMessage("OpenAI OAuth 연결됨");
       } else {
-        setMessage(data.message || "OpenAI login started");
+        setMessage(data.message || "OpenAI 로그인 시작됨");
       }
       await refreshStatus();
     } catch (error) {
@@ -307,7 +307,7 @@ function App() {
 
   const saveGeminiKey = useCallback(async () => {
     if (!keyInput.trim()) {
-      setMessage("Gemini API key required");
+      setMessage("Gemini API 키를 입력하세요.");
       return;
     }
     setConnectBusy(true);
@@ -318,7 +318,7 @@ function App() {
       });
       setKeyInput("");
       setKeyPanelOpen(false);
-      setMessage("Gemini key saved");
+      setMessage("Gemini API 키 저장됨");
       await refreshStatus();
     } catch (error) {
       setMessage(asErrorMessage(error));
@@ -331,7 +331,7 @@ function App() {
     setConnectBusy(true);
     try {
       await api("/api/gemini/key", { method: "DELETE" });
-      setMessage("Gemini key removed");
+      setMessage("Gemini API 키 삭제됨");
       await refreshStatus();
     } catch (error) {
       setMessage(asErrorMessage(error));
@@ -344,7 +344,7 @@ function App() {
     if (!imageReady || busy) return;
     setBusy(true);
     setResult("");
-    setMessage("Generating prompt...");
+    setMessage("프롬프트 생성 중...");
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -366,12 +366,12 @@ function App() {
         })
       });
       setResult(data.result.text);
-      setMessage(`Done · ${(data.result.durationMs / 1000).toFixed(1)}s`);
+      setMessage(`완료 · ${(data.result.durationMs / 1000).toFixed(1)}초`);
       await refreshHistory();
       await refreshStatus();
     } catch (error) {
       if (error.name === "AbortError") {
-        setMessage("Cancelled");
+        setMessage("중단됨");
       } else {
         setMessage(asErrorMessage(error));
       }
@@ -395,7 +395,7 @@ function App() {
   const cancel = useCallback(() => {
     abortRef.current?.abort();
     setBusy(false);
-    setMessage("Cancelling...");
+    setMessage("중단 중...");
   }, []);
 
   const retry = useCallback(() => {
@@ -407,19 +407,19 @@ function App() {
   const copyResult = useCallback(async () => {
     if (!result.trim()) return;
     await navigator.clipboard.writeText(result);
-    setMessage("Copied");
+    setMessage("복사됨");
   }, [result]);
 
   const clearResult = useCallback(() => {
     setResult("");
-    setMessage("Cleared");
+    setMessage("결과 지움");
   }, []);
 
   const clearHistory = useCallback(async () => {
     try {
       await api("/api/history", { method: "DELETE" });
       setHistory([]);
-      setMessage("History cleared");
+      setMessage("기록 지움");
     } catch (error) {
       setMessage(asErrorMessage(error));
     }
@@ -431,7 +431,7 @@ function App() {
     if (entry.provider === "openai") setOpenaiModel(entry.model);
     if (entry.provider === "gemini") setGeminiModel(entry.model);
     setKeyword(entry.keyword || "");
-    setMessage(`Loaded history · ${entry.model}`);
+    setMessage(`기록 불러옴 · ${entry.model}`);
   }, []);
 
   useEffect(() => {
@@ -512,25 +512,36 @@ function App() {
           </div>
         </div>
 
+        <div className="auth-actions" aria-label="인증 액션">
+          <ControlButton
+            icon={LogIn}
+            onClick={connectOpenAI}
+            busy={connectBusy}
+            title="ChatGPT OAuth 로그인"
+            className={`auth-button ${status?.openai?.running ? "connected" : ""}`}
+          >
+            chat gpt oauth 로그인
+          </ControlButton>
+          <ControlButton
+            icon={KeyRound}
+            onClick={() => setKeyPanelOpen((open) => !open)}
+            title="Gemini API key 입력"
+            className={`auth-button ${status?.gemini?.keySaved ? "connected" : ""}`}
+          >
+            gemini api key 입력
+          </ControlButton>
+        </div>
+
         <div className="status-strip">
           <span className={`status-pill ${status?.openai?.running ? "ok" : "warn"}`}>
             <PlugZap size={14} />
-            OpenAI {status?.openai?.running ? "ready" : "offline"}
+            ChatGPT OAuth {status?.openai?.running ? "연결됨" : "미연결"}
           </span>
           <span className={`status-pill ${status?.gemini?.keySaved ? "ok" : "muted"}`}>
             <KeyRound size={14} />
-            Gemini {status?.gemini?.keySaved ? "key saved" : "no key"}
+            Gemini {status?.gemini?.keySaved ? "키 저장됨" : "키 없음"}
           </span>
-          <span className="status-message">{message}</span>
-        </div>
-
-        <div className="top-actions">
-          <ControlButton icon={LogIn} onClick={connectOpenAI} busy={connectBusy} title="OpenAI OAuth connect">
-            OAuth
-          </ControlButton>
-          <ControlButton icon={KeyRound} onClick={() => setKeyPanelOpen((open) => !open)} title="Gemini key">
-            Gemini
-          </ControlButton>
+          <span className="status-message">{message === "Ready" ? "준비됨" : message}</span>
         </div>
       </header>
 
@@ -538,19 +549,19 @@ function App() {
         <section className="key-panel">
           <div>
             <strong>Gemini API Key</strong>
-            <span>{status?.gemini?.keySaved ? "A local key is saved." : "Saved only in .gpi/local.json."}</span>
+            <span>{status?.gemini?.keySaved ? "로컬 키가 저장되어 있습니다." : ".gpi/local.json에만 저장됩니다."}</span>
           </div>
           <input
             value={keyInput}
             onChange={(event) => setKeyInput(event.target.value)}
-            placeholder="Paste Gemini API key"
+            placeholder="Gemini API 키 붙여넣기"
             type="password"
           />
           <ControlButton icon={CheckCircle2} onClick={saveGeminiKey} busy={connectBusy}>
-            Save
+            저장
           </ControlButton>
           <ControlButton icon={Trash2} onClick={deleteGeminiKey} disabled={!status?.gemini?.keySaved}>
-            Remove
+            삭제
           </ControlButton>
         </section>
       ) : null}
@@ -583,7 +594,7 @@ function App() {
             ) : (
               <div className="empty-drop">
                 <FileImage size={34} />
-                <strong>Drop image</strong>
+                <strong>이미지 놓기</strong>
                 <span>jpg · png · webp</span>
               </div>
             )}
@@ -598,14 +609,14 @@ function App() {
               onChange={(event) => handleFile(event.target.files?.[0])}
             />
             <ControlButton icon={Upload} onClick={() => fileInputRef.current?.click()}>
-              File
+              파일
             </ControlButton>
-            <ControlButton icon={Clipboard} onClick={() => navigator.clipboard.readText().then((text) => loadUrl(text)).catch(() => setMessage("Clipboard image paste works with Ctrl+V"))}>
-              Paste URL
+            <ControlButton icon={Clipboard} onClick={() => navigator.clipboard.readText().then((text) => loadUrl(text)).catch(() => setMessage("클립보드 이미지는 Ctrl+V로 붙여넣으세요."))}>
+              URL 붙여넣기
             </ControlButton>
           </div>
 
-          <label className="field-label" htmlFor="urlText">Image URL</label>
+          <label className="field-label" htmlFor="urlText">이미지 URL</label>
           <div className="url-row">
             <Link size={17} />
             <input
@@ -621,18 +632,18 @@ function App() {
               placeholder="https://..."
             />
             <button onClick={() => loadUrl(urlText)} disabled={urlBusy}>
-              {urlBusy ? <LoaderCircle className="spin" size={16} /> : "Load"}
+              {urlBusy ? <LoaderCircle className="spin" size={16} /> : "불러오기"}
             </button>
           </div>
 
           <section className="settings-panel">
             <div className="panel-heading">
-              <span>Provider</span>
+              <span>제공자</span>
               <strong>{providerLabels[provider]}</strong>
             </div>
             <Segment options={["openai", "gemini"]} value={provider} onChange={setProvider} disabled={busy} />
 
-            <label className="field-label" htmlFor="modelSelect">Model</label>
+            <label className="field-label" htmlFor="modelSelect">모델</label>
             <select
               id="modelSelect"
               value={currentModel}
@@ -651,7 +662,7 @@ function App() {
             </select>
 
             <div className="panel-heading compact">
-              <span>{provider === "openai" ? "Reasoning" : "Thinking"}</span>
+              <span>{provider === "openai" ? "추론 강도" : "Gemini Thinking"}</span>
               <strong>{provider === "openai" ? reasoningEffort : thinkingLevel}</strong>
             </div>
             {provider === "openai" ? (
@@ -660,18 +671,18 @@ function App() {
               <Segment options={GEMINI_THINKING} value={thinkingLevel} onChange={setThinkingLevel} disabled={busy} />
             )}
 
-            <label className="field-label" htmlFor="keyword">Keyword</label>
+            <label className="field-label" htmlFor="keyword">키워드</label>
             <input
               id="keyword"
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="optional visual adjustment"
+              placeholder="선택 키워드"
               disabled={busy}
             />
 
             <div className="generate-row">
               <ControlButton icon={Play} className="primary" onClick={generate} disabled={!canGenerate} busy={busy}>
-                Generate <kbd>F1</kbd>
+                생성 <kbd>F1</kbd>
               </ControlButton>
               <ControlButton icon={RotateCcw} onClick={retry} disabled={!imageReady || busy} title="Retry">
                 <kbd>F5</kbd>
@@ -686,22 +697,22 @@ function App() {
         <section className="result-panel">
           <div className="result-toolbar">
             <div>
-              <span>Output</span>
+              <span>결과</span>
               <strong>{currentModel}</strong>
             </div>
             <div className="toolbar-actions">
               <ControlButton icon={Copy} onClick={copyResult} disabled={!result.trim()}>
-                Copy <kbd>Ctrl+C</kbd>
+                복사 <kbd>Ctrl+C</kbd>
               </ControlButton>
               <ControlButton icon={Eraser} onClick={clearResult} disabled={!result.trim()}>
-                Clear
+                지우기
               </ControlButton>
             </div>
           </div>
           <textarea
-            value={busy && !result ? "Generating..." : result}
+            value={busy && !result ? "생성 중..." : result}
             onChange={(event) => setResult(event.target.value)}
-            placeholder="Generated prompt appears here."
+            placeholder="생성된 프롬프트가 여기에 표시됩니다."
             spellCheck="false"
           />
         </section>
@@ -710,7 +721,7 @@ function App() {
           <div className="history-head">
             <div>
               <History size={17} />
-              <strong>History</strong>
+              <strong>기록</strong>
             </div>
             <button onClick={clearHistory} disabled={!history.length} title="Clear history">
               <Trash2 size={15} />
@@ -729,7 +740,7 @@ function App() {
             ) : (
               <div className="empty-history">
                 <AlertTriangle size={18} />
-                <span>No local history</span>
+                <span>로컬 기록 없음</span>
               </div>
             )}
           </div>
