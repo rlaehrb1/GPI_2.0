@@ -28,6 +28,5 @@ if not exist node_modules (
 )
 
 echo Starting GPI 2.0...
-echo Open http://127.0.0.1:8787 if the browser does not open automatically.
-start "" "http://127.0.0.1:8787"
-call npm run dev
+echo The browser will open automatically.
+call npm run dev -- --open

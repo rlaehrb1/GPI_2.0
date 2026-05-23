@@ -21,6 +21,5 @@ if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot "node_modules"))) {
 
 Write-Host ""
 Write-Host "Starting GPI 2.0..." -ForegroundColor Green
-Write-Host "Open http://127.0.0.1:8787 if the browser does not open automatically."
-Start-Process "http://127.0.0.1:8787"
-npm run dev
+Write-Host "The browser will open automatically."
+npm run dev -- --open

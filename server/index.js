@@ -16,6 +16,7 @@ const LOG_FILE = path.join(DATA_DIR, "logs.jsonl");
 
 const PORT = Number(process.env.PORT || 8787);
 const IS_PRODUCTION = process.env.NODE_ENV === "production" || process.argv.includes("--production");
+const SHOULD_OPEN_BROWSER = process.argv.includes("--open") || process.env.GPI_OPEN_BROWSER === "1";
 
 const OPENAI_PROXY_HOST = "127.0.0.1";
 const OPENAI_PROXY_PORT = 10531;
@@ -81,6 +82,23 @@ async function logEvent(event, data = {}) {
 
 function npxCommand() {
   return process.platform === "win32" ? "npx.cmd" : "npx";
+}
+
+function openBrowser(url) {
+  const command =
+    process.platform === "win32" ? "cmd.exe" :
+      process.platform === "darwin" ? "open" :
+        "xdg-open";
+  const args =
+    process.platform === "win32" ? ["/c", "start", "", url] :
+      [url];
+
+  try {
+    const child = spawn(command, args, { detached: true, stdio: "ignore" });
+    child.unref();
+  } catch (error) {
+    console.warn(`Could not open browser automatically: ${error.message}`);
+  }
 }
 
 function timeoutSignal(ms) {
@@ -737,7 +755,9 @@ async function createApp() {
 
 const app = await createApp();
 const server = app.listen(PORT, "127.0.0.1", () => {
-  console.log(`GPI 2.0 running at http://127.0.0.1:${PORT}`);
+  const url = `http://127.0.0.1:${PORT}`;
+  console.log(`GPI 2.0 running at ${url}`);
+  if (SHOULD_OPEN_BROWSER) openBrowser(url);
 });
 
 function shutdown() {

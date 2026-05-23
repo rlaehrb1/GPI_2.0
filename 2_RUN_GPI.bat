@@ -48,11 +48,10 @@ if not exist node_modules (
 echo Keep this black window open while using GPI.
 echo Close this window when you want to stop GPI.
 echo.
-echo Browser:
+echo The browser will open automatically:
 echo http://127.0.0.1:8787
 echo.
-start "" "http://127.0.0.1:8787"
-call npm run dev
+call npm run dev -- --open
 if errorlevel 1 (
   echo.
   echo GPI stopped with an error.
