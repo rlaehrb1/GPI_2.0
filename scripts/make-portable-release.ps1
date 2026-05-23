@@ -46,6 +46,48 @@ $NodeZipName = "node-$NodeTag-win-x64.zip"
 $NodeZipPath = Join-Path $CacheDir $NodeZipName
 $NodeExtractDir = Join-Path $CacheDir "node-$NodeTag-win-x64"
 $NodeUrl = "https://nodejs.org/dist/$NodeTag/$NodeZipName"
+$ShasumsPath = Join-Path $CacheDir "node-$NodeTag-SHASUMS256.txt"
+$ShasumsUrl = "https://nodejs.org/dist/$NodeTag/SHASUMS256.txt"
+
+function Get-ExpectedNodeZipHash {
+  if (-not (Test-Path -LiteralPath $ShasumsPath)) {
+    Write-Host "Downloading Node.js checksums..."
+    Invoke-WebRequest -Uri $ShasumsUrl -OutFile $ShasumsPath
+  }
+
+  $escapedName = [regex]::Escape($NodeZipName)
+  $line = Get-Content -LiteralPath $ShasumsPath | Where-Object { $_ -match "^\s*([a-fA-F0-9]{64})\s+$escapedName\s*$" } | Select-Object -First 1
+  if (-not $line) {
+    throw "Could not find checksum for $NodeZipName in SHASUMS256.txt"
+  }
+
+  return ([regex]::Match($line, "^\s*([a-fA-F0-9]{64})").Groups[1].Value).ToLowerInvariant()
+}
+
+function Get-Sha256Hex($Path) {
+  $stream = [System.IO.File]::OpenRead($Path)
+  try {
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $hash = $sha256.ComputeHash($stream)
+      return ([System.BitConverter]::ToString($hash) -replace "-", "").ToLowerInvariant()
+    } finally {
+      $sha256.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
+function Test-NodeZipHash {
+  $expected = Get-ExpectedNodeZipHash
+  $actual = Get-Sha256Hex $NodeZipPath
+  if ($actual -ne $expected) {
+    Remove-File $NodeZipPath
+    throw "Node.js ZIP checksum mismatch. Expected $expected but got $actual."
+  }
+  Write-Host "Node.js checksum verified."
+}
 
 Write-Host "Preparing GPI 2.0 portable release..." -ForegroundColor Cyan
 Write-Host "Node runtime: $NodeTag"
@@ -66,6 +108,8 @@ if (-not (Test-Path -LiteralPath $NodeZipPath)) {
   Write-Host "Downloading portable Node.js..."
   Invoke-WebRequest -Uri $NodeUrl -OutFile $NodeZipPath
 }
+
+Test-NodeZipHash
 
 if (-not (Test-Path -LiteralPath (Join-Path $NodeExtractDir "node.exe"))) {
   Write-Host "Extracting portable Node.js..."

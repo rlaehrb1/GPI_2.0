@@ -107,6 +107,43 @@ function timeoutSignal(ms) {
   return { signal: controller.signal, clear: () => clearTimeout(timer) };
 }
 
+function originFromUrl(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
+
+function isTrustedLocalOrigin(origin) {
+  return new Set([
+    `http://127.0.0.1:${PORT}`,
+    `http://localhost:${PORT}`
+  ]).has(origin);
+}
+
+function requireTrustedMutationOrigin(req, res, next) {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    next();
+    return;
+  }
+
+  const origin = req.get("origin");
+  const referer = req.get("referer");
+  const sourceOrigin = origin || originFromUrl(referer || "");
+
+  if (!sourceOrigin || isTrustedLocalOrigin(sourceOrigin)) {
+    next();
+    return;
+  }
+
+  res.status(403).json({
+    error: {
+      message: "신뢰할 수 없는 페이지에서 보낸 요청은 차단되었습니다."
+    }
+  });
+}
+
 async function fetchJson(url, options = {}, timeoutMs = 10000) {
   const timeout = timeoutSignal(timeoutMs);
   try {
@@ -562,6 +599,7 @@ async function createApp() {
   await ensureDataDir();
   const app = express();
   app.use(express.json({ limit: "30mb" }));
+  app.use(requireTrustedMutationOrigin);
 
   app.get("/api/status", asyncHandler(async (_req, res) => {
     const config = await loadConfig();
