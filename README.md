@@ -5,6 +5,18 @@ OpenAI API Key는 쓰지 않고, ChatGPT/Codex OAuth 또는 Gemini API Key로 �
 
 ## 1. 완전 초보자용 실행 순서
 
+GitHub Releases에서 `GPI_2.0_Portable.zip`을 받은 사람은 아래처럼 하면 됩니다.
+
+```text
+1. GPI_2.0_Portable.zip 압축 풀기
+2. GPI 실행.bat 더블클릭
+3. 브라우저가 자동으로 열림
+```
+
+이 방식은 Node.js 설치가 필요 없습니다.
+
+소스코드로 받은 사람만 아래 순서를 사용하세요.
+
 헷갈리면 먼저 이 파일을 열어 보세요.
 
 ```text
@@ -197,3 +209,17 @@ npm run check
 ```
 
 빌드까지 성공하면 정상입니다.
+
+## 10. 배포 ZIP 만들기
+
+개발자가 GitHub Releases에 올릴 ZIP을 만들 때:
+
+```powershell
+npm run release:portable
+```
+
+완성 파일:
+
+```text
+release/GPI_2.0_Portable.zip
+```
