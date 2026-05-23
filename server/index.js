@@ -43,6 +43,8 @@ const MAX_HISTORY = 20;
 
 let openaiProxyProcess = null;
 let loginLaunchUntil = 0;
+let openaiProxyStartPromise = null;
+let lastOpenAIAutoStartAt = 0;
 
 async function ensureDataDir() {
   await fsp.mkdir(DATA_DIR, { recursive: true });
@@ -80,10 +82,6 @@ async function logEvent(event, data = {}) {
   await fsp.appendFile(LOG_FILE, `${JSON.stringify(payload)}\n`, "utf8");
 }
 
-function npxCommand() {
-  return process.platform === "win32" ? "npx.cmd" : "npx";
-}
-
 function openBrowser(url) {
   const command =
     process.platform === "win32" ? "cmd.exe" :
@@ -99,6 +97,34 @@ function openBrowser(url) {
   } catch (error) {
     console.warn(`Could not open browser automatically: ${error.message}`);
   }
+}
+
+function localCliScript(packagePath, cliPath) {
+  const scriptPath = path.join(ROOT_DIR, "node_modules", ...packagePath, ...cliPath);
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`${packagePath.join("/")} is not installed. Run npm install and try again.`);
+  }
+  return scriptPath;
+}
+
+function openAIOAuthInvocation(args = []) {
+  return {
+    command: process.execPath,
+    args: [
+      localCliScript(["openai-oauth"], ["dist", "cli.js"]),
+      ...args
+    ]
+  };
+}
+
+function codexLoginInvocation() {
+  return {
+    command: process.execPath,
+    args: [
+      localCliScript(["@openai", "codex"], ["bin", "codex.js"]),
+      "login"
+    ]
+  };
 }
 
 function timeoutSignal(ms) {
@@ -206,27 +232,47 @@ async function waitForOpenAIProxy(processRef, timeoutMs = 20000) {
 }
 
 async function startOpenAIProxy() {
+  if (openaiProxyStartPromise) {
+    return openaiProxyStartPromise;
+  }
+
+  openaiProxyStartPromise = startOpenAIProxyOnce();
+  try {
+    return await openaiProxyStartPromise;
+  } finally {
+    openaiProxyStartPromise = null;
+  }
+}
+
+async function startOpenAIProxyOnce() {
   const existing = await openaiProxyStatus();
   if (existing.running) {
     return existing;
   }
 
+  const invocation = openAIOAuthInvocation(["--host", OPENAI_PROXY_HOST, "--port", String(OPENAI_PROXY_PORT)]);
   const child = spawn(
-    npxCommand(),
-    ["--yes", "openai-oauth", "--host", OPENAI_PROXY_HOST, "--port", String(OPENAI_PROXY_PORT)],
+    invocation.command,
+    invocation.args,
     {
       cwd: ROOT_DIR,
-      stdio: ["ignore", "ignore", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true
     }
   );
   openaiProxyProcess = child;
 
-  let stderr = "";
+  let processOutput = "";
+  child.stdout?.on("data", (chunk) => {
+    processOutput += chunk.toString();
+    if (processOutput.length > 2000) {
+      processOutput = processOutput.slice(-2000);
+    }
+  });
   child.stderr?.on("data", (chunk) => {
-    stderr += chunk.toString();
-    if (stderr.length > 2000) {
-      stderr = stderr.slice(-2000);
+    processOutput += chunk.toString();
+    if (processOutput.length > 2000) {
+      processOutput = processOutput.slice(-2000);
     }
   });
   child.on("exit", () => {
@@ -238,11 +284,22 @@ async function startOpenAIProxy() {
   try {
     return await waitForOpenAIProxy(child);
   } catch (error) {
-    if (stderr.trim()) {
-      error.message = `${error.message} ${stderr.trim()}`;
+    if (processOutput.trim()) {
+      error.message = `${error.message} ${processOutput.trim()}`;
     }
     throw error;
   }
+}
+
+function triggerOpenAIAutoStart() {
+  const now = Date.now();
+  if (openaiProxyStartPromise || now - lastOpenAIAutoStartAt < 30_000) {
+    return;
+  }
+  lastOpenAIAutoStartAt = now;
+  startOpenAIProxy()
+    .then((openai) => logEvent("openai_auto_connect", { running: true, supportedModels: openai.supportedModels }))
+    .catch((error) => logEvent("openai_auto_connect_failed", { message: error.message }));
 }
 
 function launchOpenAILogin() {
@@ -253,14 +310,16 @@ function launchOpenAILogin() {
   loginLaunchUntil = now + 60_000;
 
   if (process.platform === "win32") {
-    spawn("cmd.exe", ["/k", npxCommand(), "--yes", "@openai/codex", "login"], {
+    const invocation = codexLoginInvocation();
+    spawn(invocation.command, invocation.args, {
       cwd: ROOT_DIR,
       detached: true,
       stdio: "ignore",
       windowsHide: false
     }).unref();
   } else {
-    spawn(npxCommand(), ["--yes", "@openai/codex", "login"], {
+    const invocation = codexLoginInvocation();
+    spawn(invocation.command, invocation.args, {
       cwd: ROOT_DIR,
       detached: true,
       stdio: "ignore"
@@ -603,9 +662,15 @@ async function createApp() {
   app.get("/api/status", asyncHandler(async (_req, res) => {
     const config = await loadConfig();
     const openai = await openaiProxyStatus();
+    if (!openai.running) {
+      triggerOpenAIAutoStart();
+    }
     res.json({
       version: "2.0.0",
-      openai,
+      openai: {
+        ...openai,
+        initializing: Boolean(openaiProxyStartPromise)
+      },
       gemini: {
         keySaved: Boolean(config.geminiApiKey)
       },
@@ -794,6 +859,7 @@ const app = await createApp();
 const server = app.listen(PORT, "127.0.0.1", () => {
   const url = `http://127.0.0.1:${PORT}`;
   console.log(`GPI 2.0 running at ${url}`);
+  triggerOpenAIAutoStart();
   if (SHOULD_OPEN_BROWSER) openBrowser(url);
 });
 
