@@ -213,7 +213,7 @@ async function startOpenAIProxy() {
 
   const child = spawn(
     npxCommand(),
-    ["openai-oauth", "--host", OPENAI_PROXY_HOST, "--port", String(OPENAI_PROXY_PORT)],
+    ["--yes", "openai-oauth", "--host", OPENAI_PROXY_HOST, "--port", String(OPENAI_PROXY_PORT)],
     {
       cwd: ROOT_DIR,
       stdio: ["ignore", "ignore", "pipe"],
@@ -253,15 +253,14 @@ function launchOpenAILogin() {
   loginLaunchUntil = now + 60_000;
 
   if (process.platform === "win32") {
-    const command = `start "GPI OpenAI OAuth Login" cmd.exe /k "${npxCommand()} @openai/codex login"`;
-    spawn("cmd.exe", ["/c", command], {
+    spawn("cmd.exe", ["/k", npxCommand(), "--yes", "@openai/codex", "login"], {
       cwd: ROOT_DIR,
       detached: true,
       stdio: "ignore",
       windowsHide: false
     }).unref();
   } else {
-    spawn(npxCommand(), ["@openai/codex", "login"], {
+    spawn(npxCommand(), ["--yes", "@openai/codex", "login"], {
       cwd: ROOT_DIR,
       detached: true,
       stdio: "ignore"
